@@ -15,27 +15,34 @@ clientes <- read.csv("data/clientes.csv", stringsAsFactors = FALSE)
 # ---------------------------------------------------------------------------
 # 1. Estructura del archivo
 # ---------------------------------------------------------------------------
-cat(sprintf("Dimensiones: %d filas × %d columnas\n", nrow(clientes), ncol(clientes)))
+cat("PASO 1: Estructura del archivo\n\n")
+cat(sprintf("Dimensiones: %d filas × %d columna\n\n", nrow(clientes), ncol(clientes)))
+cat("Primeras filas:\n")
 print(clientes)
+cat("\n")
 
 # ---------------------------------------------------------------------------
-# 2. Tipos inferidos (str) — la pista que da el lenguaje
+# 2. Tipos inferidos (str) — La pista que da el lenguaje
 # ---------------------------------------------------------------------------
+cat("PASO 2: Tipos inferidos (str)\n\n")
 str(clientes)
-# TODO 1: ¿qué columnas llegan como número (int) y cuáles como texto
-#         (character)? Anótalo para el informe. Ojo con satisfaccion: llega
-#         como número y es ordinal ("4 no es el doble de 2") — la justificación
-#         va en el informe.
+cat("\n")
+
+cat("Se puede ver que la columnas detectadas como texto son: cliente_id, genero, nivel_educacion, ciudad.\n")
+cat("Mientras que las detectadas como entero son: edad, numero_hijos, ingresos_mensuales, satisfaccion.\n\n")
 
 # ---------------------------------------------------------------------------
-# 3. Valores únicos — ¿cuántas categorías hay y cuáles son?
+# 3. Valores únicos — ¿Cuántas categorías hay y cuáles son?
 # ---------------------------------------------------------------------------
-# TODO 2: completa el bucle para imprimir, por columna, cuántos valores únicos
-#         hay y cuáles son. Pista: for (columna in names(clientes)) { ... } con
-#         unique() y length(). ¿Cuántas categorías tiene genero?
-# for (columna in names(clientes)) {
-#   ...
-# }
+cat("PASO 3: Valores únicos por columna\n\n")
+for (columna in names(clientes)) {
+  unicos <- unique(clientes[[columna]])
+  cat(sprintf("Columna %-20s:%d valores únicos %s\n", columna, length(unicos), paste(deparse(unicos), collapse="")))
+}
+cat("\n")
+cat(sprintf("La variable 'genero' tiene %d categorías únicas: %s\n\n", 
+            length(unique(clientes$genero)), 
+            paste(deparse(unique(clientes$genero)), collapse="")))
 
 # ---------------------------------------------------------------------------
 # 4. Declarar el orden de las variables ordinales
@@ -43,30 +50,51 @@ str(clientes)
 # Una ordinal se guarda como texto y su orden natural se pierde: alfabéticamente
 # "Posgrado" iría antes que "Primaria", que no tiene sentido. En R, eso se
 # declara con el factor ordenado.
-#
-# TODO 3: convierte nivel_educacion con factor(..., levels = c(...), ordered = TRUE).
-#         Comprueba con min(): debe devolver "Primaria".
-# TODO 4: haz lo mismo con satisfaccion (escala 1–5 como etiquetas ordenadas).
-#         Prueba extra: ¿qué pasa si en levels escribes "Postgrado" (con t) para
-#         nivel_educacion? Cuenta los faltantes con sum(is.na(...)) — la trampa
-#         del typo es silenciosa.
+cat("PASO 4: Declaración y verificación de variables ordinales\n\n")
+
+# Convertir nivel_educacion a factor ordenado
+clientes$nivel_educacion <- factor(
+  clientes$nivel_educacion,
+  levels = c("Primaria", "Secundaria", "Universidad", "Posgrado"),
+  ordered = TRUE
+)
+
+cat(sprintf("Comprobación nivel_educacion min: %s\n", min(clientes$nivel_educacion)))
+
+# Convertir satisfaccion a factor ordenado
+clientes$satisfaccion <- factor(
+  clientes$satisfaccion,
+  levels = c(1, 2, 3, 4, 5),
+  ordered = TRUE
+)
+
+cat(sprintf("Comprobación satisfaccion min: %s\n\n", min(clientes$satisfaccion)))
+
+cat("DEMOSTRACIÓN EXTRA:\n")
+prueba_typo <- factor(
+  c("Posgrado", "Primaria"),
+  levels = c("Postgrado", "Primaria"),
+  ordered = TRUE
+)
+cat("Si definimos las categorías con 'Postgrado', los datos que decían 'Posgrado'\n")
+cat(sprintf("no coinciden y se vuelven nulos. Cantidad de valores nulos generados: %d\n\n", sum(is.na(prueba_typo))))
 
 # ---------------------------------------------------------------------------
 # 5. Resumen de la clasificación (para el informe)
 # ---------------------------------------------------------------------------
-# TODO 5: completa el resumen con el tipo de cada variable (el criterio que
-#         justifica cada clasificación va en el informe).
+cat("PASO 5: Resumen de la clasificación\n\n")
+
 clasificacion <- c(
-  cliente_id         = "…",
-  edad               = "…",
-  numero_hijos       = "…",
-  genero             = "…",
-  nivel_educacion    = "…",
-  ciudad             = "…",
-  ingresos_mensuales = "…",
-  satisfaccion       = "…"
+  cliente_id         = "Cualitativa nominal (Identificador)",
+  edad               = "Cuantitativa discreta",
+  numero_hijos       = "Cuantitativa discreta",
+  genero             = "Cualitativa nominal",
+  nivel_educacion    = "Cualitativa ordinal",
+  ciudad             = "Cualitativa nominal",
+  ingresos_mensuales = "Cuantitativa continua",
+  satisfaccion       = "Cualitativa ordinal"
 )
-cat("\nResumen de la clasificación (para el informe):\n")
+
 for (variable in names(clasificacion)) {
-  cat(sprintf("  %-18s %s\n", variable, clasificacion[[variable]]))
+  cat(sprintf("  %-20s %s\n", variable, clasificacion[[variable]]))
 }
