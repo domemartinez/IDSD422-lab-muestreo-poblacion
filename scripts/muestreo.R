@@ -8,6 +8,7 @@
 # Uso (desde la raíz del repositorio):  Rscript scripts/muestreo.R
 
 poblacion <- read.csv("data/clientes_400.csv")
+suppressPackageStartupMessages(library(dplyr))
 
 reporte <- function(nombre, muestra, parametro) {
   # Imprime n, media estimada y composición por ciudad de una muestra.
@@ -17,10 +18,14 @@ reporte <- function(nombre, muestra, parametro) {
     return(invisible(NULL))
   }
   media <- mean(muestra$ingresos_mensuales)
+  
+  # Convertir la tabla de frecuencias de ciudad a un formato limpio estilo diccionario para R
+  tab_ciudad <- table(muestra$ciudad)
+  ciudades_str <- paste0("'", names(tab_ciudad), "': ", tab_ciudad, collapse = ", ")
+  
   cat(sprintf("[%s] n=%d  media=%.2f USD  (parámetro %.2f, diferencia %+.2f)\n",
               nombre, nrow(muestra), media, parametro, media - parametro))
-  cat("    composición por ciudad: ")
-  print(table(muestra$ciudad))
+  cat(sprintf("    composición por ciudad: {%s}\n", ciudades_str))
 }
 
 # ---------------------------------------------------------------------------
@@ -32,7 +37,10 @@ reporte <- function(nombre, muestra, parametro) {
 cat(sprintf("Población: %d clientes × %d columnas\n", nrow(poblacion), ncol(poblacion)))
 parametro <- mean(poblacion$ingresos_mensuales)
 cat(sprintf("Parámetro poblacional — ingreso medio: %.2f USD\n", parametro))
-cat("Ciudades en la población: "); print(table(poblacion$ciudad))
+
+tab_pob <- table(poblacion$ciudad)
+pob_str <- paste0("'", names(tab_pob), "': ", tab_pob, collapse = ", ")
+cat(sprintf("Ciudades en la población: {%s}\n\n", pob_str))
 
 # ---------------------------------------------------------------------------
 # 2. Muestra por conveniencia: "los primeros que llegaron"
@@ -41,7 +49,10 @@ cat("Ciudades en la población: "); print(table(poblacion$ciudad))
 #         Pista: head(poblacion, 20) — igual que la demo de clase.
 #         Después de correrlo, mira la composición por ciudad que imprime el
 #         reporte: ¿es un corte al azar? ¿alguna ciudad falta por completo?
-muestra_conv <- NULL
+cat("TODO 1: Muestra por conveniencia: los primeros que llegaron\n")
+muestra_conv <- head(poblacion, 20)
+reporte("Conveniencia", muestra_conv, parametro)
+cat("\n")
 
 # ---------------------------------------------------------------------------
 # 3. Muestra aleatoria simple: el sorteo de 20
@@ -52,7 +63,17 @@ muestra_conv <- NULL
 # TODO 3: repite el sorteo con las semillas 2 a 5 y anota las 5 medias en el
 #         informe: la variabilidad de la estimación es parte de la lección.
 #         Pista: for (semilla in 1:5) { set.seed(semilla); ... }
-muestra_aas <- NULL
+cat("TODO 2 y 3: Muestra aleatoria simple: el sorteo de 20\n")
+set.seed(1)
+muestra_aas <- poblacion[sample(nrow(poblacion), 20), ]
+
+cat("Repetición de semillas\n")
+for (semilla in 1:5) {
+  set.seed(semilla)
+  m_temp <- poblacion[sample(nrow(poblacion), 20), ]
+  cat(sprintf("Semilla %d: media estimada = %.2f USD\n", semilla, mean(m_temp$ingresos_mensuales)))
+}
+cat("\n")
 
 # ---------------------------------------------------------------------------
 # 4. Muestra estratificada: 5 % dentro de cada ciudad
@@ -62,33 +83,31 @@ muestra_aas <- NULL
 #         Cuenca (20 en total).
 #         Pista: library(dplyr); poblacion |> group_by(ciudad) |> slice_sample(prop = 0.05)
 #         ¿Qué garantiza este diseño que el sorteo simple no garantiza?
-muestra_est <- NULL
+cat("TODO 4: Muestra estratificada: 5 % dentro de cada ciudad\n")
+set.seed(1)
+muestra_est <- poblacion |> group_by(ciudad) |> slice_sample(prop = 0.05)
+# |> operador de concatenación, lo que tenga a la izquierda actúa como parámetro a la función de la derecha
 
 # ---------------------------------------------------------------------------
 # 5. Comparación final
 # ---------------------------------------------------------------------------
+cat("\nComparación Final:\n\n")
 reporte("Conveniencia", muestra_conv, parametro)
 reporte("Aleatorio simple", muestra_aas, parametro)
-reporte("Estratificado", muestra_est, parametro)
+reporte("Estratificado", as.data.frame(muestra_est), parametro)
+cat("\n")
 
 if (!is.null(muestra_conv) && !is.null(muestra_aas) && !is.null(muestra_est)) {
   resumen <- data.frame(
     diseno = c("Conveniencia (head)", "Aleatorio simple (sample)", "Estratificado (slice_sample)"),
-    n = c(nrow(muestra_conv), nrow(muestra_aas), nrow(muestra_est)),
+    n = c(nrow(muestra_conv), nrow(muestra_aas), nrow(as.data.frame(muestra_est))),
     media_estimada = round(c(mean(muestra_conv$ingresos_mensuales),
                              mean(muestra_aas$ingresos_mensuales),
-                             mean(muestra_est$ingresos_mensuales)), 2)
+                             mean(as.data.frame(muestra_est)$ingresos_mensuales)), 2)
   )
   cat(sprintf("Parámetro poblacional: %.2f USD\n", parametro))
   print(resumen, row.names = FALSE)
-  cat("Con estas salidas responde en informe.md las preguntas P2 a P5:\n")
-  cat("  P2: ¿cuál diseño quedó más cerca del parámetro y por qué un solo\n")
-  cat("      número no basta para declarar un ganador?\n")
-  cat("  P3: ¿qué defecto tiene la muestra por conveniencia y cómo lo delata\n")
-  cat("      su composición por ciudad? ¿Se corrige con más filas?\n")
-  cat("  P4: ¿qué implica la variabilidad entre semillas para una decisión\n")
-  cat("      tomada con un solo estudio?\n")
-  cat("  P5: ¿cuándo usarías cada diseño? (piloto · subgrupos · conclusión)\n")
+  cat("\n")
 } else {
   cat("Completa los TODO 1 a 4 para ver la tabla comparativa.\n")
 }
